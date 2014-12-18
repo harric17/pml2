@@ -1,0 +1,168 @@
+
+```{r setup, include=FALSE}
+opts_chunk$set(cache=TRUE)
+``` 
+
+```{r, include=FALSE}
+library(caret)
+library(e1071)
+getwd()
+setwd("C:/Users/harric17/Desktop/R Stuff/coursera/machine_learning2")
+
+testing = as.data.frame(read.csv(file = "pml-testing.csv", header = TRUE))
+training = as.data.frame(read.csv(file = "pml-training.csv", header = TRUE))
+
+#unnecessay variables
+myvars= names(training) %in% c("X","problem_id","raw_timestamp_part_1","raw_timestamp_part_2","cvtd_timestamp")
+training = training[!myvars]
+myvars= names(testing) %in% c("X","problem_id","raw_timestamp_part_1","raw_timestamp_part_2","cvtd_timestamp")
+testing = testing[!myvars]
+
+dim(testing)
+dim(training)
+
+
+#find high NA
+var=rep(NA,dim(testing)[2])
+perc=rep(NA,dim(testing)[2])
+x =data.frame(var,perc)
+
+for (i in 1:dim(testing)[2] ) {
+  print(paste("% NA for ",colnames(testing)[i],": ",sum(is.na(testing[,i]))/length(testing[,i]),sep=""))
+  
+  
+  x$var[i]= colnames(testing)[i]
+  x$perc[i] = sum(is.na(testing[,i]))/length(testing[,i])
+  
+}
+
+
+length(x[x$perc==0,1])
+
+table(x$perc)
+
+
+#keep 55 vars
+keepvars=x[x$perc==0,1]
+keepvars2 = c(keepvars,"classe")
+training = training[,keepvars2]
+testing = testing[,keepvars]
+
+dim(training)
+dim(testing)
+
+head(testing)
+head(training)
+
+
+
+
+#change class
+
+training$user_name=as.factor(training$user_name)
+training$new_window=as.factor(training$new_window)
+training$classe=as.factor(training$classe)
+
+testing$user_name=as.factor(testing$user_name)
+testing$new_window=as.factor(testing$new_window)
+
+dim(training)
+dim(testing)
+
+for(i in 3:dim(testing)[2]){
+  training[i]=as.numeric(training[,i])
+}
+
+for(i in 3:dim(testing)[2]){
+  testing[i]=as.numeric(testing[,i])
+}
+
+
+
+sapply(training,class)
+sapply(testing,class)
+dim(testing)
+dim(training)
+
+sum(sapply(training,is.factor))
+sum(sapply(testing,is.factor))
+
+sum(sapply(training,is.numeric))
+sum(sapply(training,is.numeric))
+
+set.seed(2)
+training$randnum = runif(length(training$classe))
+training2 = training[training$randnum <.15,]
+training2$randnum=NULL
+dim(training2)
+
+training2 = training2[3:dim(training2)[2]]
+testing = testing[3:dim(testing)[2]]
+testing2 = training[training$randnum >=.15,]
+
+
+set.seed(33833)
+library(randomForest)
+modFit = randomForest(classe~.,data=training2, ntree=500)
+modFit
+names(modFit)
+modFit$confusion
+answers=predict(modFit,testing)
+confusionMatrix(predict(modFit,testing2),testing2$classe)
+modFit$mtry
+names(training2)
+
+
+
+sapply(training2,class)
+class(modFit)
+dim(training)
+#sum(names(testing)==names(training2[1:55]))/length(names(testing))
+
+
+z=modFit$importance[order(-modFit$importance),]
+importance=z[1:10]
+```
+
+Practical Machine Learning Class Project 2014
+========================================================
+
+## Introduction
+
+A significant challenge to today's data scientists is extracting meaningful insights from the large volumes of data that are continuously being collected from a variety of sources.   The goal of this analysis was to develop an accurate algorithm for predicting the manner of exercise being performed by 6 participants based on measurements collected from inexpensive personal activity sensors.
+
+---
+## Methods
+
+The training dataset contained 19622 observations across 160 variables.  The testing set contained 20 observations without information related to the outcome measure.  The outcome variable of interest, classe, is a categorical variable consisting of 5 different levels.   A random forest model was fit to predict this categorical outcome.
+
+There was substantial data management required for this analysis.  First, five variables were excluded as obvious noise: X, problem_id, raw_timestamp_part_1, raw_timestamp_part_2, and cvtd_timestamp.  Next, variables that had exclusively missing values in the test set were also excluded.  This resulted in a dataset with 55 predictor variables, two of which were factors with the remaining numeric. 
+
+The training dataset was then ultimately subset to improve analysis speed.  Using a random uniform number generator a small subset of exactly 3000 observations was created and used to train the random forest model.  The remaining data was set aside for further validation of the model.  Ultimately the smaller training subset contained levels of the factor variables that were not in the test data set, so the two factor variables were also excluded from the analysis.  A forest of 500 trees was created, and the number of variables randomly chosen at each split was left as the default value of 7.
+
+---
+## Results
+The out of bag error rate for the resulting random forest model was 2.63%, or 97.37% accuracy.  Class errors for the out of bag data are displayed below in Table 1.
+
+Table 1: Confusion matrix from OOB data
+```{r, echo=FALSE}
+modFit$confusion
+```
+The random forest model performed similarly well on the validation dataset, predicting the outcome with 97.38% accuracy.  The top 10 variables in terms of importance for this forest are presented in Table 2 on the next slide.  On the test data set, 19 of 20 observations were correctly predicted.
+
+---
+## Results
+
+Table 2: Top 10 variables by importance
+```{r, echo=FALSE}
+data.frame(importance)
+```
+
+---
+## Conclusions
+
+Many potential predictors were excluded from this analysis and additionally the final model was trained on only about 15% of the available data.  Nonetheless a highly accurate model was constructed using random forests.  The out of sample error from both the out-of-bag data and validation set are both less than 3%.
+
+Going forward several more investigative analyses could be performed.  For example this data could be further explored using a complete case analysis, which would yeild information about the predictive importance of the variables that were excluded in this analysis due to a large number of missing values.  Another additional future analysis might be creating a random forest using only the most important variables to see if model accuracy was similarly high.  If so this would minimize the amount of data needed to be collected.  A third future analysis might investigate building models that are better at distinguish certain levels of the outcome that are of particula interest.  For the current model had the most trouble distinguising class D from class C (see Table 1), so if you are particularly interested in distinguishing between those outcomes tuning parameters could be tweaked to more finely tune your model.
+
+

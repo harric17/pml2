@@ -35,9 +35,6 @@ Table 1: Confusion matrix from OOB data
 ```
 The random forest model performed similarly well on the validation dataset, predicting the outcome with 97.38% accuracy.  The top 10 variables in terms of importance for this forest are presented in Table 2 on the next slide.  On the test data set, 19 of 20 observations were correctly predicted.
 
----
-## Results
-
 Table 2: Top 10 variables by importance
 
 ```

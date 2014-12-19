@@ -214,7 +214,7 @@ names(training2)
 sapply(training2,class)
 class(modFit)
 dim(training)
-sum(names(testing)==names(training2[1:55]))/length(names(testing))
+# sum(names(testing)==names(training2[1:55]))/length(names(testing))
 
 
 # predict(modFit,testing)
